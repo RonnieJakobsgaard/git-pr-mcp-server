@@ -189,6 +189,18 @@ function renderDiff(files) {
     ui.draw();
     ui.highlightCode();
 
+    // Inject per-file approve button into the file header
+    const fileHeader = targetEl.querySelector(".d2h-file-header");
+    if (fileHeader) {
+      const btn = document.createElement("button");
+      btn.id = `approve-file-${fileIdx}`;
+      btn.dataset.filename = f.filename;
+      btn.className = "approve-file-btn ml-3 px-2 py-0.5 text-xs rounded border border-green-400 text-green-700 hover:bg-green-50 transition disabled:opacity-40 disabled:cursor-not-allowed";
+      btn.textContent = "Approve file";
+      btn.onclick = () => approveFile(f.filename, btn);
+      fileHeader.appendChild(btn);
+    }
+
     // Tag each line with data attributes for comment anchoring
     targetEl.querySelectorAll(".d2h-code-line, .d2h-code-line-ctn").forEach(cell => {
       const row = cell.closest("tr");
@@ -291,6 +303,7 @@ async function refreshComments() {
     renderCommentThreads();
     renderSidebar();
     updateCommentCount();
+    updateFileApproveBtns();
   } catch (e) { /* server not ready yet */ }
 }
 
@@ -404,6 +417,35 @@ function renderCommentThreads() {
       </div>`;
     tr.appendChild(td);
     row.insertAdjacentElement("afterend", tr);
+  });
+}
+
+async function approveFile(filename, btn) {
+  const res = await fetch("/approve-file", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ file: filename }),
+  });
+  const data = await res.json();
+  if (data.error) { alert(data.error); return; }
+  btn.textContent = "✓ Approved";
+  btn.disabled = true;
+  btn.classList.replace("border-green-400", "border-green-200");
+  btn.classList.replace("text-green-700", "text-green-400");
+  if (data.status === "approved") {
+    reviewStatus = "approved";
+    updateStatusBadge("approved");
+  }
+}
+
+function updateFileApproveBtns() {
+  document.querySelectorAll(".approve-file-btn").forEach(btn => {
+    const filename = btn.dataset.filename;
+    const hasUnresolved = comments.some(c => c.file === filename && !c.resolved);
+    const isApproved = (comments.length === 0 ? false : false) ||
+      btn.textContent.includes("✓") ||
+      reviewStatus !== "pending";
+    btn.disabled = hasUnresolved || isApproved || reviewStatus !== "pending";
   });
 }
 

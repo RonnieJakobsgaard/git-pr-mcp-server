@@ -24,6 +24,7 @@ class SharedState:
         self.comments: list[dict] = []
         self.status: str = "pending"
         self.diff_data: dict = {}
+        self.approved_files: set[str] = set()
         self.port: int = 0
         self.temp_dir: str = tempfile.mkdtemp(prefix="pr-review-")
 
@@ -40,6 +41,7 @@ class SharedState:
         with self.lock:
             self.comments = []
             self.status = "pending"
+            self.approved_files = set()
             self._write_comments()
 
     def add_comment(self, file: str, line: int, comment: str) -> dict:
@@ -91,9 +93,26 @@ class SharedState:
             self.status = status
             self._write_comments()
 
+    def approve_file(self, filename: str) -> dict | str:
+        """Returns updated approved_files list, or an error string."""
+        with self.lock:
+            unresolved = [c for c in self.comments if c["file"] == filename and not c["resolved"]]
+            if unresolved:
+                return f"file '{filename}' has {len(unresolved)} unresolved comment(s)"
+            self.approved_files.add(filename)
+            all_files = {f["filename"] for f in self.diff_data.get("files", [])}
+            if all_files and all_files <= self.approved_files:
+                self.status = "approved"
+                self._write_comments()
+            return {"approved_files": sorted(self.approved_files), "status": self.status}
+
     def snapshot(self) -> dict:
         with self.lock:
-            return {"status": self.status, "comments": list(self.comments)}
+            return {
+                "status": self.status,
+                "comments": list(self.comments),
+                "approved_files": sorted(self.approved_files),
+            }
 
 
 state = SharedState()
@@ -175,6 +194,17 @@ class ReviewHandler(http.server.BaseHTTPRequestHandler):
             result = state.resolve_comment(comment_id)
             if result is None:
                 self._send_json({"error": f"comment '{comment_id}' not found"}, 404)
+            else:
+                self._send_json(result)
+
+        elif self.path == "/approve-file":
+            filename = body.get("file", "").strip()
+            if not filename:
+                self._send_json({"error": "file required"}, 400)
+                return
+            result = state.approve_file(filename)
+            if isinstance(result, str):
+                self._send_json({"error": result}, 400)
             else:
                 self._send_json(result)
 
