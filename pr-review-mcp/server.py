@@ -44,9 +44,15 @@ class SharedState:
             self.approved_files = set()
             self._write_comments()
 
-    def add_comment(self, file: str, line: int, comment: str) -> dict:
-        entry = {"id": str(uuid.uuid4()), "file": file, "line": line, "comment": comment, "resolved": False}
+    def add_comment(self, file: str, line: int, comment: str, parent_id: str | None = None) -> dict | str:
         with self.lock:
+            if parent_id is not None:
+                if not any(c["id"] == parent_id for c in self.comments):
+                    return f"parent comment '{parent_id}' not found"
+            entry = {
+                "id": str(uuid.uuid4()), "file": file, "line": line,
+                "comment": comment, "resolved": False, "parent_id": parent_id,
+            }
             self.comments.append(entry)
             self._write_comments()
         return entry
@@ -56,6 +62,10 @@ class SharedState:
             for c in self.comments:
                 if c["id"] == comment_id:
                     c["resolved"] = True
+                    # Resolve all replies to this comment too
+                    for reply in self.comments:
+                        if reply.get("parent_id") == comment_id:
+                            reply["resolved"] = True
                     self._write_comments()
                     return c
         return None
@@ -178,7 +188,11 @@ class ReviewHandler(http.server.BaseHTTPRequestHandler):
             if not comment:
                 self._send_json({"error": "comment required"}, 400)
                 return
-            entry = state.add_comment(file, line, comment)
+            parent_id = body.get("parent_id") or None
+            entry = state.add_comment(file, line, comment, parent_id)
+            if isinstance(entry, str):
+                self._send_json({"error": entry}, 404)
+                return
             self._send_json(entry, 201)
 
         elif self.path == "/status":
