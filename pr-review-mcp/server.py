@@ -333,7 +333,18 @@ def parse_diff(raw: str) -> dict:
 # Startup
 # ---------------------------------------------------------------------------
 
-state.port = find_free_port()
+def _resolve_port() -> int:
+    desired = int(os.environ.get("PR_REVIEW_PORT", 7777))
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("localhost", desired))
+        return desired
+    except OSError:
+        fallback = find_free_port()
+        print(f"WARNING: port {desired} already in use, falling back to {fallback}", flush=True)
+        return fallback
+
+state.port = _resolve_port()
 http_thread = threading.Thread(target=run_http_server, args=(state.port,), daemon=True)
 http_thread.start()
 
