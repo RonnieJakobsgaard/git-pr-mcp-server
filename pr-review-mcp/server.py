@@ -282,6 +282,15 @@ def run_http_server(port: int):
 
 mcp = FastMCP("pr-review")
 
+_COMMIT_MSG_PROMPT = """\
+Generate a conventional commit message for the git diff below.
+Format: <type>(<optional scope>): <short imperative subject> (max 72 chars)
+
+Types: feat, fix, refactor, style, test, docs, chore.
+Output only the commit message — no explanation, no backticks, no blank lines.
+"""
+
+
 _AI_REVIEW_PROMPT = """\
 You are a code reviewer. Analyze the git diff below and identify specific issues: bugs, logic errors, security problems, unclear variable names, or missing edge-case handling. Skip style nits and formatting.
 
@@ -348,6 +357,38 @@ def _run_ai_pre_review(diff_text: str) -> None:
         print(f"WARNING: AI pre-review failed: {e}", flush=True)
 
 
+def _suggest_commit_message(diff_text: str) -> str | None:
+    """Return a suggested conventional commit message, or None on failure."""
+    if not _HAS_ANTHROPIC:
+        return None
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return None
+    try:
+        client = _anthropic.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-opus-4-7",
+            max_tokens=128,
+            system=[{
+                "type": "text",
+                "text": _COMMIT_MSG_PROMPT,
+                "cache_control": {"type": "ephemeral"},
+            }],
+            messages=[{"role": "user", "content": [
+                {
+                    "type": "text",
+                    "text": diff_text,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ]}],
+        )
+        text = response.content[0].text.strip() if response.content else ""
+        return text or None
+    except Exception as e:
+        print(f"WARNING: commit message suggestion failed: {e}", flush=True)
+        return None
+
+
 def _validate_ref(ref: str) -> str | None:
     """Return None if ref is valid, or an error string if not."""
     result = subprocess.run(
@@ -380,6 +421,7 @@ def create_review(base_ref: str = "main", head_ref: str = "HEAD", ai_pre_review:
     diff_data = parse_diff(raw)
     diff_data["base_ref"] = base_ref
     diff_data["head_ref"] = head_ref
+    diff_data["_raw"] = raw
     state.reset()
     with state.lock:
         state.diff_data = diff_data
@@ -399,6 +441,12 @@ async def wait_for_approval(timeout_seconds: int = 600) -> dict:
     while time.time() < deadline:
         snap = state.snapshot()
         if snap["status"] in ("approved", "changes_requested"):
+            if snap["status"] == "approved":
+                with state.lock:
+                    diff_text = state.diff_data.get("_raw", "")
+                suggested = _suggest_commit_message(diff_text) if diff_text else None
+                if suggested:
+                    snap["suggested_message"] = suggested
             return snap
         await anyio.sleep(2)
     return {"error": f"Timed out after {timeout_seconds}s", "status": "timeout"}
