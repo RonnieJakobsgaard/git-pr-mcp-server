@@ -12,6 +12,12 @@ from pathlib import Path
 
 import anyio
 
+try:
+    import anthropic as _anthropic
+    _HAS_ANTHROPIC = True
+except ImportError:
+    _HAS_ANTHROPIC = False
+
 from mcp.server.fastmcp import FastMCP
 
 # ---------------------------------------------------------------------------
@@ -44,7 +50,8 @@ class SharedState:
             self.approved_files = set()
             self._write_comments()
 
-    def add_comment(self, file: str, line: int, comment: str, parent_id: str | None = None) -> dict | str:
+    def add_comment(self, file: str, line: int, comment: str,
+                    parent_id: str | None = None, source: str = "human") -> dict | str:
         with self.lock:
             if parent_id is not None:
                 if not any(c["id"] == parent_id for c in self.comments):
@@ -52,6 +59,7 @@ class SharedState:
             entry = {
                 "id": str(uuid.uuid4()), "file": file, "line": line,
                 "comment": comment, "resolved": False, "parent_id": parent_id,
+                "source": source,
             }
             self.comments.append(entry)
             self._write_comments()
@@ -274,6 +282,71 @@ def run_http_server(port: int):
 
 mcp = FastMCP("pr-review")
 
+_AI_REVIEW_PROMPT = """\
+You are a code reviewer. Analyze the git diff below and identify specific issues: bugs, logic errors, security problems, unclear variable names, or missing edge-case handling. Skip style nits and formatting.
+
+For each issue, respond with a JSON object on its own line (NDJSON), with these fields:
+  file    — the filename (must match exactly)
+  line    — the new-file line number closest to the issue (integer)
+  comment — a concise, actionable description of the issue (1–3 sentences)
+
+If there are no issues, output an empty line. Do not include any prose outside the JSON lines.
+
+Diff:
+"""
+
+
+def _run_ai_pre_review(diff_text: str) -> None:
+    """Send the diff to Claude and inject any issues as AI-sourced comments."""
+    if not _HAS_ANTHROPIC:
+        print("WARNING: anthropic package not installed, skipping AI pre-review", flush=True)
+        return
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        print("WARNING: ANTHROPIC_API_KEY not set, skipping AI pre-review", flush=True)
+        return
+    try:
+        client = _anthropic.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-opus-4-7",
+            max_tokens=2048,
+            system=[{
+                "type": "text",
+                "text": _AI_REVIEW_PROMPT,
+                "cache_control": {"type": "ephemeral"},
+            }],
+            messages=[{
+                "type": "text",
+                "text": diff_text,
+                "cache_control": {"type": "ephemeral"},
+            }] if False else [{"role": "user", "content": [
+                {
+                    "type": "text",
+                    "text": diff_text,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ]}],
+        )
+        text = response.content[0].text if response.content else ""
+        injected = 0
+        for raw_line in text.splitlines():
+            raw_line = raw_line.strip()
+            if not raw_line:
+                continue
+            try:
+                obj = json.loads(raw_line)
+                file = str(obj.get("file", "")).strip()
+                line = int(obj.get("line", 0))
+                comment = str(obj.get("comment", "")).strip()
+                if file and comment:
+                    state.add_comment(file, line, comment, source="ai")
+                    injected += 1
+            except (json.JSONDecodeError, ValueError, KeyError):
+                pass
+        print(f"AI pre-review: injected {injected} comment(s)", flush=True)
+    except Exception as e:
+        print(f"WARNING: AI pre-review failed: {e}", flush=True)
+
 
 def _validate_ref(ref: str) -> str | None:
     """Return None if ref is valid, or an error string if not."""
@@ -287,7 +360,7 @@ def _validate_ref(ref: str) -> str | None:
 
 
 @mcp.tool()
-def create_review(base_ref: str = "main", head_ref: str = "HEAD") -> dict:
+def create_review(base_ref: str = "main", head_ref: str = "HEAD", ai_pre_review: bool = False) -> dict:
     """Run git diff, parse it, serve the review UI, and open the browser."""
     for ref in (base_ref, head_ref):
         if err := _validate_ref(ref):
@@ -310,6 +383,9 @@ def create_review(base_ref: str = "main", head_ref: str = "HEAD") -> dict:
     state.reset()
     with state.lock:
         state.diff_data = diff_data
+
+    if ai_pre_review:
+        threading.Thread(target=_run_ai_pre_review, args=(raw,), daemon=True).start()
 
     url = f"http://localhost:{state.port}"
     webbrowser.open(url)

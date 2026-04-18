@@ -12,6 +12,7 @@
   .inline-comment-box { background: #fffbdd; border: 1px solid #e6c84a; border-radius: 4px; padding: 8px; margin: 4px 0; }
   .resolved-badge { display: inline-flex; align-items: center; gap: 4px; background: #d1fae5; color: #065f46; border-radius: 9999px; padding: 2px 8px; font-size: 0.75rem; }
   .comment-thread { background: #f8fafc; border-left: 3px solid #6366f1; padding: 8px 12px; margin: 2px 0; font-size: 0.85rem; }
+  .comment-thread.ai-comment { background: #fdf4ff; border-left-color: #a855f7; }
   .d2h-code-line, .d2h-code-line-ctn { cursor: pointer; }
   .d2h-code-line:hover, .d2h-code-line-ctn:hover { background: rgba(99,102,241,0.08) !important; }
   #file-tree a:hover { background: #e0e7ff; }
@@ -358,8 +359,11 @@ function renderSidebar() {
       list.appendChild(entry);
     }
     const resolvedCls = c.resolved ? "line-through text-gray-400" : "text-gray-800";
+    const sidebarAiBadge = c.source === "ai"
+      ? `<span title="Posted by AI pre-review" class="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-xs bg-purple-100 text-purple-700">🤖 AI</span>`
+      : "";
     entry.innerHTML = `
-      <p class="text-xs text-indigo-500 font-mono truncate mb-0.5">${escapeHtml(c.file)}${c.line ? `:${c.line}` : ""}</p>
+      <p class="text-xs text-indigo-500 font-mono truncate mb-0.5 flex items-center gap-1">${sidebarAiBadge}${escapeHtml(c.file)}${c.line ? `:${c.line}` : ""}</p>
       <p class="text-sm ${resolvedCls} truncate">${escapeHtml(c.comment)}</p>
       ${c.resolved ? `<span class="text-xs text-green-600">✓ Resolved</span>` : ""}`;
   });
@@ -373,16 +377,21 @@ function renderSidebar() {
 }
 
 function buildCommentHtml(c, isReply = false, replies = []) {
-  const editControls = (!c.resolved && reviewStatus === "pending" && !isReply)
+  const isAI = c.source === "ai";
+  const editControls = (!c.resolved && reviewStatus === "pending" && !isReply && !isAI)
     ? `<span class="comment-edit-controls flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
          <button onclick="startEditComment('${c.id}')" class="text-xs text-gray-400 hover:text-indigo-600" title="Edit">✏️</button>
          <button onclick="deleteComment('${c.id}')" class="text-xs text-gray-400 hover:text-red-600" title="Delete">🗑️</button>
        </span>`
     : "";
+  const aiBadge = isAI
+    ? `<span title="Posted by AI pre-review" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 shrink-0">🤖 AI</span>`
+    : "";
   const replyBtn = (!c.resolved && reviewStatus === "pending" && !isReply)
     ? `<button onclick="openReplyForm('${c.id}')" class="text-xs text-indigo-400 hover:text-indigo-600 mt-1">Reply</button>`
     : "";
   const indent = isReply ? "ml-6 border-l-2 border-indigo-200 pl-3" : "";
+  const aiCls = isAI ? " ai-comment" : "";
   const repliesHtml = !isReply && replies.length
     ? `<div class="mt-1">
          <button id="toggle-replies-${c.id}" onclick="toggleReplies('${c.id}')" class="text-xs text-gray-400 hover:text-indigo-600 mb-1">▼ ${replies.length} ${replies.length === 1 ? "reply" : "replies"}</button>
@@ -392,9 +401,10 @@ function buildCommentHtml(c, isReply = false, replies = []) {
        </div>`
     : "";
   return `
-    <div id="comment-${c.id}" class="comment-thread group flex flex-col gap-1 ${indent}">
+    <div id="comment-${c.id}" class="comment-thread group flex flex-col gap-1 ${indent}${aiCls}">
       <div class="flex items-start justify-between gap-2">
         <span class="flex-1 comment-text-${c.id}">${escapeHtml(c.comment)}</span>
+        ${aiBadge}
         ${c.resolved ? `<span class="resolved-badge">✓ Resolved</span>` : `<span class="resolved-badge" style="display:none">✓ Resolved</span>`}
         ${editControls}
       </div>
