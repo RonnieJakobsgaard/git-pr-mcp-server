@@ -10,6 +10,8 @@ import uuid
 import webbrowser
 from pathlib import Path
 
+import anyio
+
 from mcp.server.fastmcp import FastMCP
 
 # ---------------------------------------------------------------------------
@@ -195,14 +197,14 @@ def create_review(base_branch: str = "main") -> dict:
 
 
 @mcp.tool()
-def wait_for_approval(timeout_seconds: int = 600) -> dict:
+async def wait_for_approval(timeout_seconds: int = 600) -> dict:
     """Block until the user approves or requests changes. Call immediately after create_review()."""
     deadline = time.time() + timeout_seconds
     while time.time() < deadline:
         snap = state.snapshot()
         if snap["status"] in ("approved", "changes_requested"):
             return snap
-        time.sleep(2)
+        await anyio.sleep(2)
     return {"error": f"Timed out after {timeout_seconds}s", "status": "timeout"}
 
 
