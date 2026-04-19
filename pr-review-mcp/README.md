@@ -68,6 +68,21 @@ After making any significant code changes:
 | `mark_comment_resolved(comment_id)` | Marks a comment resolved after fixing it |
 | `approve_and_commit(message)` | Commits — only works when all comments resolved |
 
+## Manual smoke test
+
+After setup, run through this checklist to confirm everything works:
+
+- [ ] Run `setup.sh` and confirm it prints a config snippet with absolute paths
+- [ ] Add the snippet to `~/.claude.json` and restart Claude Code
+- [ ] Run `/mcp` — `pr-review` should appear as connected
+- [ ] Ask Claude to make a small change, then call `create_review()` — browser opens showing the diff
+- [ ] Click a line in the diff — a comment form appears anchored to that line
+- [ ] Submit a comment — it appears in the sidebar and inline below the line
+- [ ] Scroll a wide file horizontally — line numbers stay fixed on the left
+- [ ] Set status to "changes_requested" — `wait_for_approval()` returns with the comment
+- [ ] Claude fixes the comment and calls `mark_comment_resolved()` — comment shows resolved badge
+- [ ] Approve — `wait_for_approval()` returns `"approved"` and `approve_and_commit()` creates the commit
+
 ## Manual testing (curl)
 
 ```bash
