@@ -35,6 +35,12 @@
   </div>
   <div class="flex items-center gap-3">
     <span id="comment-count" class="text-sm text-gray-500"></span>
+    <div id="format-toggle" class="flex rounded-md border border-gray-300 overflow-hidden text-xs font-medium">
+      <button id="btn-fmt-side" onclick="setDiffFormat('side-by-side')"
+        class="px-3 py-1.5 transition">Side by side</button>
+      <button id="btn-fmt-unified" onclick="setDiffFormat('line-by-line')"
+        class="px-3 py-1.5 border-l border-gray-300 transition">Unified</button>
+    </div>
     <button id="btn-changes" onclick="submitStatus('changes_requested')"
       class="px-4 py-1.5 rounded-md border border-red-300 text-red-700 hover:bg-red-50 text-sm font-medium transition">
       Request Changes
@@ -93,11 +99,13 @@ let diffData = null;
 let comments = [];
 let reviewStatus = "pending";
 let activeFormRow = null;
+let diffFormat = localStorage.getItem("diffFormat") || "side-by-side";
 
 // ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
 async function init() {
+  updateFormatToggleUI();
   await loadDiff();
   await refreshComments();
   setInterval(refreshComments, 3000);
@@ -130,6 +138,28 @@ async function loadDiff() {
 
 function showEmpty() {
   document.getElementById("empty-state").classList.remove("hidden");
+}
+
+// ---------------------------------------------------------------------------
+// Diff format toggle
+// ---------------------------------------------------------------------------
+function updateFormatToggleUI() {
+  const isSide = diffFormat === "side-by-side";
+  document.getElementById("btn-fmt-side").className =
+    `px-3 py-1.5 transition ${isSide ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"}`;
+  document.getElementById("btn-fmt-unified").className =
+    `px-3 py-1.5 border-l border-gray-300 transition ${!isSide ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"}`;
+}
+
+function setDiffFormat(fmt) {
+  if (fmt === diffFormat) return;
+  diffFormat = fmt;
+  localStorage.setItem("diffFormat", fmt);
+  updateFormatToggleUI();
+  if (diffData) {
+    renderDiff(diffData.files || []);
+    renderCommentThreads();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -188,7 +218,7 @@ function renderDiff(files) {
     const ui = new Diff2HtmlUI(targetEl, singleFileDiff, {
       drawFileList: false,
       matching: "lines",
-      outputFormat: "side-by-side",
+      outputFormat: diffFormat,
       highlight: true,
       renderNothingWhenEmpty: false,
     });
@@ -208,21 +238,47 @@ function renderDiff(files) {
     }
 
     // Tag each code td with file/line data for click-to-comment.
-    // Side-by-side renders two separate 2-cell tables inside .d2h-file-side-diff divs.
-    // Detect left/right by which table the cell belongs to.
-    const sideDiffs = Array.from(targetEl.querySelectorAll(".d2h-file-side-diff"));
-    targetEl.querySelectorAll(".d2h-code-side-linenumber").forEach(lineNoCell => {
-      const codeTd = lineNoCell.nextElementSibling;
-      if (!codeTd) return;
-      const lineNo = parseInt(lineNoCell.textContent.trim());
-      if (!(lineNo > 0)) return;
-      const parentSideDiff = lineNoCell.closest(".d2h-file-side-diff");
-      const side = sideDiffs.indexOf(parentSideDiff) === 0 ? "left" : "right";
-      codeTd.dataset.file = f.filename;
-      codeTd.dataset.fileIdx = fileIdx;
-      codeTd.dataset.line = lineNo;
-      codeTd.dataset.side = side;
-    });
+    if (diffFormat === "side-by-side") {
+      const sideDiffs = Array.from(targetEl.querySelectorAll(".d2h-file-side-diff"));
+      targetEl.querySelectorAll(".d2h-code-side-linenumber").forEach(lineNoCell => {
+        const codeTd = lineNoCell.nextElementSibling;
+        if (!codeTd) return;
+        const lineNo = parseInt(lineNoCell.textContent.trim());
+        if (!(lineNo > 0)) return;
+        const parentSideDiff = lineNoCell.closest(".d2h-file-side-diff");
+        const side = sideDiffs.indexOf(parentSideDiff) === 0 ? "left" : "right";
+        codeTd.dataset.file = f.filename;
+        codeTd.dataset.fileIdx = fileIdx;
+        codeTd.dataset.line = lineNo;
+        codeTd.dataset.side = side;
+      });
+    } else {
+      // Unified (line-by-line): rows have [old-linenum?, new-linenum?, code] tds.
+      // Only tag rows that have a NEW line number (skip removed lines) so that
+      // comment threads always anchor to the right row.
+      targetEl.querySelectorAll("tr").forEach(row => {
+        const tds = Array.from(row.querySelectorAll("td"));
+        if (tds.length < 2) return;
+        const codeTd = tds[tds.length - 1];
+        const lineNoCells = tds.slice(0, -1);
+        // lastLineNoCell holds the new-side line number.
+        // It may be a single td with two child divs (one td per row) or the
+        // rightmost of two separate tds. Either way, read the last child element
+        // if children exist, otherwise read the full textContent.
+        const lastCell = lineNoCells[lineNoCells.length - 1];
+        if (!lastCell) return;
+        const kids = Array.from(lastCell.children).filter(el => el.textContent.trim());
+        const newLineText = kids.length
+          ? kids[kids.length - 1].textContent.trim()
+          : (lastCell.textContent.trim().split(/\s+/).filter(Boolean).pop() || "");
+        const lineNo = parseInt(newLineText);
+        if (!(lineNo > 0)) return; // removed lines have blank new-number → skip
+        codeTd.dataset.file = f.filename;
+        codeTd.dataset.fileIdx = fileIdx;
+        codeTd.dataset.line = lineNo;
+        codeTd.dataset.side = "right";
+      });
+    }
   });
 }
 
