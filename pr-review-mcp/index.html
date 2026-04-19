@@ -629,6 +629,11 @@ function renderCommentThreads() {
     const td = document.createElement("td");
     td.colSpan = colspan;
 
+    // Offset content past sticky line-number columns (same logic as comment form)
+    const lineNoCells = Array.from(row.querySelectorAll(".d2h-code-side-linenumber, .d2h-code-linenumber"));
+    const lineNoWidth = lineNoCells.reduce((sum, el) => sum + el.offsetWidth, 0);
+    if (lineNoWidth > 0) td.style.paddingLeft = `${lineNoWidth + 8}px`;
+
     const replies = repliesFor(c.id);
     td.innerHTML = buildCommentHtml(c, false, replies);
     tr.appendChild(td);
