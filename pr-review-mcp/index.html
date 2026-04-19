@@ -1,24 +1,4 @@
 <!DOCTYPE html>
-<!-- TEMP line 001 --> <!-- TEMP line 002 --> <!-- TEMP line 003 --> <!-- TEMP line 004 --> <!-- TEMP line 005 -->
-<!-- TEMP line 006 --> <!-- TEMP line 007 --> <!-- TEMP line 008 --> <!-- TEMP line 009 --> <!-- TEMP line 010 -->
-<!-- TEMP line 011 --> <!-- TEMP line 012 --> <!-- TEMP line 013 --> <!-- TEMP line 014 --> <!-- TEMP line 015 -->
-<!-- TEMP line 016 --> <!-- TEMP line 017 --> <!-- TEMP line 018 --> <!-- TEMP line 019 --> <!-- TEMP line 020 -->
-<!-- TEMP line 021 --> <!-- TEMP line 022 --> <!-- TEMP line 023 --> <!-- TEMP line 024 --> <!-- TEMP line 025 -->
-<!-- TEMP line 026 --> <!-- TEMP line 027 --> <!-- TEMP line 028 --> <!-- TEMP line 029 --> <!-- TEMP line 030 -->
-<!-- TEMP line 031 --> <!-- TEMP line 032 --> <!-- TEMP line 033 --> <!-- TEMP line 034 --> <!-- TEMP line 035 -->
-<!-- TEMP line 036 --> <!-- TEMP line 037 --> <!-- TEMP line 038 --> <!-- TEMP line 039 --> <!-- TEMP line 040 -->
-<!-- TEMP line 041 --> <!-- TEMP line 042 --> <!-- TEMP line 043 --> <!-- TEMP line 044 --> <!-- TEMP line 045 -->
-<!-- TEMP line 046 --> <!-- TEMP line 047 --> <!-- TEMP line 048 --> <!-- TEMP line 049 --> <!-- TEMP line 050 -->
-<!-- TEMP line 051 --> <!-- TEMP line 052 --> <!-- TEMP line 053 --> <!-- TEMP line 054 --> <!-- TEMP line 055 -->
-<!-- TEMP line 056 --> <!-- TEMP line 057 --> <!-- TEMP line 058 --> <!-- TEMP line 059 --> <!-- TEMP line 060 -->
-<!-- TEMP line 061 --> <!-- TEMP line 062 --> <!-- TEMP line 063 --> <!-- TEMP line 064 --> <!-- TEMP line 065 -->
-<!-- TEMP line 066 --> <!-- TEMP line 067 --> <!-- TEMP line 068 --> <!-- TEMP line 069 --> <!-- TEMP line 070 -->
-<!-- TEMP line 071 --> <!-- TEMP line 072 --> <!-- TEMP line 073 --> <!-- TEMP line 074 --> <!-- TEMP line 075 -->
-<!-- TEMP line 076 --> <!-- TEMP line 077 --> <!-- TEMP line 078 --> <!-- TEMP line 079 --> <!-- TEMP line 080 -->
-<!-- TEMP line 081 --> <!-- TEMP line 082 --> <!-- TEMP line 083 --> <!-- TEMP line 084 --> <!-- TEMP line 085 -->
-<!-- TEMP line 086 --> <!-- TEMP line 087 --> <!-- TEMP line 088 --> <!-- TEMP line 089 --> <!-- TEMP line 090 -->
-<!-- TEMP line 091 --> <!-- TEMP line 092 --> <!-- TEMP line 093 --> <!-- TEMP line 094 --> <!-- TEMP line 095 -->
-<!-- TEMP line 096 --> <!-- TEMP line 097 --> <!-- TEMP line 098 --> <!-- TEMP line 099 --> <!-- TEMP line 100 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -29,9 +9,11 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   .d2h-file-wrapper { margin-bottom: 1.5rem; }
-  .diff-scroll-container { overflow-x: auto; overflow-y: auto; max-height: 75vh; }
+  .diff-scroll-container { overflow-x: auto; overflow-y: clip; }
   .diff-scroll-container .d2h-file-side-diff { overflow: visible !important; width: auto !important; }
   .diff-scroll-container .d2h-files-diff { width: max-content; }
+  .phantom-scrollbar-wrap { position: sticky; bottom: 0; overflow-x: auto; overflow-y: hidden; height: 14px; z-index: 2; background: #f9fafb; }
+  .phantom-scrollbar-inner { height: 1px; }
   .inline-comment-box { background: #fffbdd; border: 1px solid #e6c84a; border-radius: 4px; padding: 8px; margin: 4px 0; position: sticky; left: 1rem; max-width: min(600px, calc(100vw - 2rem)); }
   .resolved-badge { display: inline-flex; align-items: center; gap: 4px; background: #d1fae5; color: #065f46; border-radius: 9999px; padding: 2px 8px; font-size: 0.75rem; }
   .comment-thread { background: #eef2ff; border: 1px solid #c7d2fe; border-left: 3px solid #6366f1; border-radius: 0 6px 6px 0; padding: 8px 12px; margin: 3px 0; font-size: 0.85rem; max-width: 600px; box-shadow: 0 1px 3px rgba(99,102,241,0.08); }
@@ -311,6 +293,8 @@ function renderDiff(files) {
       btn.onclick = () => approveFile(f.filename, btn);
       fileHeader.appendChild(btn);
     }
+
+    attachPhantomScrollbar(scrollContainer);
 
     // Tag each code td with file/line data for click-to-comment.
     if (diffFormat === "side-by-side") {
@@ -785,6 +769,43 @@ async function deleteComment(id) {
 
 function escapeHtml(s) {
   return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ---------------------------------------------------------------------------
+// Phantom scrollbar
+// ---------------------------------------------------------------------------
+function attachPhantomScrollbar(scrollContainer) {
+  const wrap = document.createElement('div');
+  wrap.className = 'phantom-scrollbar-wrap';
+  const inner = document.createElement('div');
+  inner.className = 'phantom-scrollbar-inner';
+  wrap.appendChild(inner);
+  scrollContainer.insertAdjacentElement('afterend', wrap);
+
+  function updateWidth() {
+    const hasOverflow = scrollContainer.scrollWidth > scrollContainer.clientWidth;
+    wrap.style.display = hasOverflow ? '' : 'none';
+    inner.style.width = scrollContainer.scrollWidth + 'px';
+  }
+
+  updateWidth();
+
+  let syncing = false;
+  wrap.addEventListener('scroll', () => {
+    if (syncing) return;
+    syncing = true;
+    scrollContainer.scrollLeft = wrap.scrollLeft;
+    syncing = false;
+  });
+  scrollContainer.addEventListener('scroll', () => {
+    if (syncing) return;
+    syncing = true;
+    wrap.scrollLeft = scrollContainer.scrollLeft;
+    syncing = false;
+  });
+
+  const ro = new ResizeObserver(updateWidth);
+  ro.observe(scrollContainer);
 }
 
 // ---------------------------------------------------------------------------
