@@ -327,11 +327,7 @@ def _run_ai_pre_review(diff_text: str) -> None:
                 "text": _AI_REVIEW_PROMPT,
                 "cache_control": {"type": "ephemeral"},
             }],
-            messages=[{
-                "type": "text",
-                "text": diff_text,
-                "cache_control": {"type": "ephemeral"},
-            }] if False else [{"role": "user", "content": [
+            messages=[{"role": "user", "content": [
                 {
                     "type": "text",
                     "text": diff_text,
