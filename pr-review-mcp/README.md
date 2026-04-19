@@ -82,6 +82,7 @@ After setup, run through this checklist to confirm everything works:
 - [ ] Set status to "changes_requested" — `wait_for_approval()` returns with the comment
 - [ ] Claude fixes the comment and calls `mark_comment_resolved()` — comment shows resolved badge
 - [ ] Approve — `wait_for_approval()` returns `"approved"` and `approve_and_commit()` creates the commit
+- [ ] Run `--resume` and confirm the MCP server reconnects automatically
 
 ## Manual testing (curl)
 
