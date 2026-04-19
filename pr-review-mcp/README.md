@@ -23,7 +23,7 @@ bash setup.sh
 
 Add the snippet printed by `setup.sh` to your MCP config. You can use either:
 
-- **Global** (`~/.claude/claude_desktop_config.json`) — available in all projects
+- **Global** (`~/.claude.json` under `mcpServers`) — available in all projects
 - **Per-project** (`.claude/settings.json` under `mcpServers`) — only in that project
 
 Example (paths filled in by `setup.sh`):

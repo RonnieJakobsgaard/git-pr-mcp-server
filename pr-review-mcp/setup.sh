@@ -16,8 +16,8 @@ SERVER="$SCRIPT_DIR/server.py"
 echo ""
 echo "Setup complete!"
 echo ""
-echo "Add the following to your Claude Code MCP config (~/.claude/claude_desktop_config.json"
-echo "or your project's .claude/settings.json under 'mcpServers'):"
+echo "Add the following to your Claude Code MCP config (~/.claude.json under 'mcpServers'"
+echo "for global, or .claude/settings.json under 'mcpServers' for per-project):"
 echo ""
 cat <<EOF
 {
