@@ -12,8 +12,8 @@
   .diff-scroll-container { overflow-x: auto; }
   .inline-comment-box { background: #fffbdd; border: 1px solid #e6c84a; border-radius: 4px; padding: 8px; margin: 4px 0; position: sticky; left: 1rem; max-width: min(600px, calc(100vw - 2rem)); }
   .resolved-badge { display: inline-flex; align-items: center; gap: 4px; background: #d1fae5; color: #065f46; border-radius: 9999px; padding: 2px 8px; font-size: 0.75rem; }
-  .comment-thread { background: #f8fafc; border-left: 3px solid #6366f1; padding: 8px 12px; margin: 2px 0; font-size: 0.85rem; max-width: 600px; }
-  .comment-thread.ai-comment { background: #fdf4ff; border-left-color: #a855f7; }
+  .comment-thread { background: #eef2ff; border: 1px solid #c7d2fe; border-left: 3px solid #6366f1; border-radius: 0 6px 6px 0; padding: 8px 12px; margin: 3px 0; font-size: 0.85rem; max-width: 600px; box-shadow: 0 1px 3px rgba(99,102,241,0.08); }
+  .comment-thread.ai-comment { background: #faf5ff; border-color: #e9d5ff; border-left-color: #a855f7; }
   td[data-file] { cursor: pointer; }
   td[data-file]:hover { background: rgba(99,102,241,0.08) !important; }
   .d2h-code-linenumber { background-color: #f9fafb !important; position: sticky; left: 0; z-index: 1; }
@@ -32,13 +32,13 @@
     <span class="font-semibold text-lg">PR Review</span>
     <span id="ref-range" class="text-xs text-gray-500 font-mono"></span>
     <span id="status-badge" class="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>
-  </div>
-  <div class="flex items-center gap-3">
-    <span id="comment-count" class="text-sm text-gray-500"></span>
     <div id="tab-switcher" class="flex rounded-md border border-gray-300 overflow-hidden text-xs font-medium">
       <button id="btn-tab-diff" onclick="switchTab('diff')" class="px-3 py-1.5 transition">Diff</button>
       <button id="btn-tab-overview" onclick="switchTab('overview')" class="px-3 py-1.5 border-l border-gray-300 transition">Overview</button>
     </div>
+  </div>
+  <div class="flex items-center gap-3">
+    <span id="comment-count" class="text-sm text-gray-500"></span>
     <div id="format-toggle" class="flex rounded-md border border-gray-300 overflow-hidden text-xs font-medium">
       <button id="btn-fmt-side" onclick="setDiffFormat('side-by-side')"
         class="px-3 py-1.5 transition">Side by side</button>
@@ -183,7 +183,6 @@ function updateTabUI() {
     `px-3 py-1.5 transition ${isDiff ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"}`;
   document.getElementById("btn-tab-overview").className =
     `px-3 py-1.5 border-l border-gray-300 transition ${!isDiff ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"}`;
-  document.getElementById("format-toggle").style.display = isDiff ? "" : "none";
 }
 
 function switchTab(tab) {
@@ -391,7 +390,10 @@ function openCommentForm(row, file, line, clickedCell = null) {
   tr.querySelector(".btn-submit").onclick = async () => {
     const text = textarea.value.trim();
     if (!text) return;
-    await postComment(file, line, text, null, side);
+    const newComment = await postComment(file, line, text, null, side);
+    // Mark the anchor row with the new comment's ID so renderCommentThreads
+    // can find the exact row without re-searching by line number.
+    if (newComment?.id) row.dataset.commentAnchorId = newComment.id;
     tr.remove();
     activeFormRow = null;
     await refreshComments();
@@ -399,11 +401,12 @@ function openCommentForm(row, file, line, clickedCell = null) {
 }
 
 async function postComment(file, line, comment, parentId = null, side = "left") {
-  await fetch("/comments", {
+  const res = await fetch("/comments", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ file, line, comment, ...(parentId && { parent_id: parentId }), side }),
   });
+  return res.ok ? res.json() : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -607,10 +610,16 @@ function renderCommentThreads() {
 
   roots.forEach(c => {
     const side = c.side || "left";
-    const cells = document.querySelectorAll(`[data-file="${CSS.escape(c.file)}"][data-line="${c.line}"][data-side="${side}"]`);
-    const anchorCell = cells.length ? cells[0] : document.querySelector(`[data-file="${CSS.escape(c.file)}"][data-line="${c.line}"]`);
-    if (!anchorCell) return;
-    const row = anchorCell.closest("tr");
+    // Prefer the row that was explicitly marked during form submission (exact match).
+    let row = document.querySelector(`tr[data-comment-anchor-id="${c.id}"]`);
+    if (row) {
+      delete row.dataset.commentAnchorId;
+    } else {
+      const cells = document.querySelectorAll(`[data-file="${CSS.escape(c.file)}"][data-line="${c.line}"][data-side="${side}"]`);
+      const anchorCell = cells.length ? cells[0] : document.querySelector(`[data-file="${CSS.escape(c.file)}"][data-line="${c.line}"]`);
+      if (!anchorCell) return;
+      row = anchorCell.closest("tr");
+    }
     if (!row) return;
 
     const existingRow = document.getElementById(`thread-row-${c.id}`);
