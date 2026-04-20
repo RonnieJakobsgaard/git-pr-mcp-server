@@ -33,7 +33,8 @@ class SharedState:
 
     def add_comment(self, file: str, line: int, comment: str,
                     parent_id: str | None = None, source: str = "human",
-                    side: str = "left") -> dict | str:
+                    side: str = "left",
+                    comment_type: str = "suggestion") -> dict | str:
         with self.lock:
             if parent_id is not None:
                 if not any(c["id"] == parent_id for c in self.comments):
@@ -42,6 +43,7 @@ class SharedState:
                 "id": str(uuid.uuid4()), "file": file, "line": line,
                 "comment": comment, "resolved": False, "parent_id": parent_id,
                 "source": source, "side": side,
+                "comment_type": comment_type if not parent_id else None,
             }
             self.comments.append(entry)
             self._write_comments()
