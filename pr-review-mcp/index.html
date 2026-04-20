@@ -372,8 +372,8 @@ function injectExpandButtons(f, targetEl) {
 
     const insertPair = (gapStart, gapEnd, beforeIdx) => {
       const pid = "ep-" + Math.random().toString(36).slice(2);
-      const e0 = makeExpandTbody(f.filename, gapStart, gapEnd, ref, 2, "side", pid + "L");
-      const e1 = makeExpandTbody(f.filename, gapStart, gapEnd, ref, 2, "side", pid + "R");
+      const e0 = makeExpandTbody(f.filename, gapStart, gapEnd, ref, 2, "side", pid + "L", true);
+      const e1 = makeExpandTbody(f.filename, gapStart, gapEnd, ref, 2, "side", pid + "R", false);
       e0.dataset.pairedId = pid + "R";
       e1.dataset.pairedId = pid + "L";
       if (beforeIdx != null) {
@@ -415,7 +415,7 @@ function injectExpandButtons(f, targetEl) {
   }
 }
 
-function makeExpandTbody(file, gapStart, gapEnd, ref, cols, mode, selfId) {
+function makeExpandTbody(file, gapStart, gapEnd, ref, cols, mode, selfId, active = true) {
   const tbody = document.createElement("tbody");
   tbody.className = "expand-ctx-tbody";
   if (selfId) tbody.id = selfId;
@@ -430,11 +430,13 @@ function makeExpandTbody(file, gapStart, gapEnd, ref, cols, mode, selfId) {
   const td = document.createElement("td");
   td.colSpan = cols;
   td.className = "expand-ctx-cell";
-  const btn = document.createElement("button");
-  btn.className = "expand-ctx-btn";
-  btn.onclick = () => expandContext(tbody);
-  setExpandBtnText(btn, gapStart, gapEnd);
-  td.appendChild(btn);
+  if (active) {
+    const btn = document.createElement("button");
+    btn.className = "expand-ctx-btn";
+    btn.onclick = () => expandContext(tbody);
+    setExpandBtnText(btn, gapStart, gapEnd);
+    td.appendChild(btn);
+  }
   tr.appendChild(td);
   tbody.appendChild(tr);
   return tbody;
