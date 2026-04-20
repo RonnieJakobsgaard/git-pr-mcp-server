@@ -63,6 +63,27 @@ def test_add_comment_default_side_is_left(s):
     assert result["side"] == "left"
 
 
+def test_add_comment_default_type_is_suggestion(s):
+    result = s.add_comment("foo.py", 1, "text")
+    assert result["comment_type"] == "suggestion"
+
+
+def test_add_comment_blocker_type(s):
+    result = s.add_comment("foo.py", 1, "must fix", comment_type="blocker")
+    assert result["comment_type"] == "blocker"
+
+
+def test_add_comment_nitpick_type(s):
+    result = s.add_comment("foo.py", 1, "minor", comment_type="nitpick")
+    assert result["comment_type"] == "nitpick"
+
+
+def test_reply_has_no_comment_type(s):
+    parent = s.add_comment("foo.py", 1, "parent")
+    reply = s.add_comment("foo.py", 1, "reply", parent_id=parent["id"])
+    assert reply["comment_type"] is None
+
+
 def test_add_comment_invalid_parent_returns_error(s):
     result = s.add_comment("foo.py", 1, "reply", parent_id="nonexistent-id")
     assert isinstance(result, str)

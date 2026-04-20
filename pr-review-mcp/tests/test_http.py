@@ -110,6 +110,21 @@ def test_post_comment_creates_entry():
     assert "id" in body
 
 
+def test_post_comment_default_type_is_suggestion():
+    _, body = _post("/comments", {"file": "a.py", "line": 1, "comment": "x"})
+    assert body["comment_type"] == "suggestion"
+
+
+def test_post_comment_blocker_type():
+    _, body = _post("/comments", {"file": "a.py", "line": 1, "comment": "x", "comment_type": "blocker"})
+    assert body["comment_type"] == "blocker"
+
+
+def test_post_comment_invalid_type_defaults_to_suggestion():
+    _, body = _post("/comments", {"file": "a.py", "line": 1, "comment": "x", "comment_type": "unknown"})
+    assert body["comment_type"] == "suggestion"
+
+
 def test_post_comment_missing_comment_returns_400():
     status, body = _post("/comments", {"file": "a.py", "line": 1})
     assert status == 400

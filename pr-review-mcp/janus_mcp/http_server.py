@@ -97,7 +97,10 @@ class ReviewHandler(http.server.BaseHTTPRequestHandler):
                 return
             parent_id = body.get("parent_id") or None
             side = body.get("side", "left")
-            entry = state.add_comment(file, line, comment, parent_id, side=side)
+            comment_type = body.get("comment_type", "suggestion")
+            if comment_type not in ("nitpick", "suggestion", "blocker"):
+                comment_type = "suggestion"
+            entry = state.add_comment(file, line, comment, parent_id, side=side, comment_type=comment_type)
             if isinstance(entry, str):
                 self._send_json({"error": entry}, 404)
                 return

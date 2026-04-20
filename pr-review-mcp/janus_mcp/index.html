@@ -121,15 +121,36 @@
   <div class="comment-form-row">
     <div class="inline-comment-box mt-1 mx-4">
       <textarea class="w-full text-sm border border-gray-300 rounded p-2 resize-y min-h-[60px] focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="Leave a comment…"></textarea>
-      <div class="flex justify-end gap-2 mt-1">
-        <button class="btn-cancel text-xs text-gray-500 hover:text-gray-700">Cancel</button>
-        <button class="btn-submit px-3 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700">Submit</button>
+      <div class="flex items-center justify-between mt-2">
+        <div class="flex gap-1 comment-type-selector" data-selected="suggestion">
+          <button type="button" data-type="nitpick"    class="type-btn px-2 py-0.5 text-xs rounded border border-gray-300 text-gray-500 hover:border-gray-400 transition">nitpick</button>
+          <button type="button" data-type="suggestion" class="type-btn px-2 py-0.5 text-xs rounded border border-indigo-400 bg-indigo-50 text-indigo-700 font-medium transition">suggestion</button>
+          <button type="button" data-type="blocker"    class="type-btn px-2 py-0.5 text-xs rounded border border-gray-300 text-gray-500 hover:border-gray-400 transition">blocker</button>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn-cancel text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+          <button class="btn-submit px-3 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700">Submit</button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+const TYPE_STYLES = {
+  nitpick:    { active: "border-gray-400 bg-gray-100 text-gray-700",    inactive: "border-gray-300 text-gray-400 hover:border-gray-400" },
+  suggestion: { active: "border-indigo-400 bg-indigo-50 text-indigo-700", inactive: "border-gray-300 text-gray-400 hover:border-gray-400" },
+  blocker:    { active: "border-red-400 bg-red-50 text-red-700",        inactive: "border-gray-300 text-gray-400 hover:border-gray-400" },
+};
+const TYPE_BADGE = {
+  nitpick:    "bg-gray-100 text-gray-600 border border-gray-300",
+  suggestion: "bg-indigo-50 text-indigo-700 border border-indigo-300",
+  blocker:    "bg-red-50 text-red-700 border border-red-300",
+};
+
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
@@ -685,11 +706,26 @@ function openCommentForm(row, file, line, clickedCell = null) {
   box.style.maxWidth = `calc(min(600px, 100vw - ${lineNoWidth + gap * 2}px))`;
 
   tr.querySelector(".btn-cancel").onclick = () => { tr.remove(); activeFormRow = null; };
+
+  // Type selector
+  const typeSelector = tr.querySelector(".comment-type-selector");
+  tr.querySelectorAll(".type-btn").forEach(btn => {
+    btn.onclick = () => {
+      typeSelector.dataset.selected = btn.dataset.type;
+      tr.querySelectorAll(".type-btn").forEach(b => {
+        const active = b.dataset.type === btn.dataset.type;
+        const colors = TYPE_STYLES[b.dataset.type];
+        b.className = `type-btn px-2 py-0.5 text-xs rounded border transition font-medium ${active ? colors.active : colors.inactive}`;
+      });
+    };
+  });
+
   const side = isRightSide ? "right" : "left";
   tr.querySelector(".btn-submit").onclick = async () => {
     const text = textarea.value.trim();
     if (!text) return;
-    const newComment = await postComment(file, line, text, null, side);
+    const commentType = typeSelector.dataset.selected || "suggestion";
+    const newComment = await postComment(file, line, text, null, side, commentType);
     // Mark the anchor row with the new comment's ID so renderCommentThreads
     // can find the exact row without re-searching by line number.
     if (newComment?.id) row.dataset.commentAnchorId = newComment.id;
@@ -699,11 +735,11 @@ function openCommentForm(row, file, line, clickedCell = null) {
   };
 }
 
-async function postComment(file, line, comment, parentId = null, side = "left") {
+async function postComment(file, line, comment, parentId = null, side = "left", commentType = "suggestion") {
   const res = await fetch("/comments", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ file, line, comment, ...(parentId && { parent_id: parentId }), side }),
+    body: JSON.stringify({ file, line, comment, ...(parentId && { parent_id: parentId }), side, comment_type: commentType }),
   });
   return res.ok ? res.json() : null;
 }
@@ -837,10 +873,15 @@ function renderOverview() {
             : "";
           const resolvedBadge = c.resolved
             ? `<span class="text-xs text-green-600">✓ Resolved</span>` : "";
+          const typeCls2 = TYPE_BADGE[c.comment_type] || TYPE_BADGE.suggestion;
+          const typeBadge2 = c.comment_type
+            ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${typeCls2}">${c.comment_type}</span>`
+            : "";
           return `<div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm cursor-pointer hover:border-indigo-400 transition-colors ${c.resolved ? "opacity-60" : ""}"
                        onclick="goToComment('${c.id}')">
             <div class="flex items-center gap-2 mb-1">
               <span class="text-xs text-indigo-500 font-mono">:${c.line}</span>
+              ${typeBadge2}
               ${aiBadge}${resolvedBadge}
             </div>
             <p class="text-sm text-gray-800 line-clamp-3">${escapeHtml(c.comment)}</p>
@@ -884,6 +925,10 @@ function buildCommentHtml(c, isReply = false, replies = []) {
   const aiBadge = isAI
     ? `<span title="Posted by AI pre-review" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 shrink-0">🤖 AI</span>`
     : "";
+  const typeCls = TYPE_BADGE[c.comment_type] || TYPE_BADGE.suggestion;
+  const typeBadge = (!isReply && c.comment_type)
+    ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium shrink-0 ${typeCls}">${c.comment_type}</span>`
+    : "";
   const replyBtn = (!c.resolved && reviewStatus === "pending" && !isReply)
     ? `<button onclick="openReplyForm('${c.id}')" class="text-xs text-indigo-400 hover:text-indigo-600 mt-1">Reply</button>`
     : "";
@@ -901,6 +946,7 @@ function buildCommentHtml(c, isReply = false, replies = []) {
     <div id="comment-${c.id}" class="comment-thread group flex flex-col gap-1 ${indent}${aiCls}">
       <div class="flex items-start justify-between gap-2">
         <span class="flex-1 comment-text-${c.id}">${escapeHtml(c.comment)}</span>
+        ${typeBadge}
         ${aiBadge}
         ${c.resolved ? `<span class="resolved-badge">✓ Resolved</span>` : `<span class="resolved-badge" style="display:none">✓ Resolved</span>`}
         ${editControls}
