@@ -289,7 +289,7 @@ function renderDiff(files) {
       const btn = document.createElement("button");
       btn.id = `approve-file-${fileIdx}`;
       btn.dataset.filename = f.filename;
-      btn.className = "approve-file-btn ml-3 px-2 py-0.5 text-xs rounded border border-green-400 text-green-700 hover:bg-green-50 transition disabled:opacity-40 disabled:cursor-not-allowed";
+      btn.className = "approve-file-btn ml-3 px-2 py-0.5 text-xs rounded border border-green-400 text-green-700 hover:bg-green-50 transition disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap";
       btn.textContent = "Approve file";
       btn.onclick = () => approveFile(f.filename, btn);
       fileHeader.appendChild(btn);
