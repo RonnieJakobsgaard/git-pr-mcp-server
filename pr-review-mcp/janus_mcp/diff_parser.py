@@ -14,13 +14,24 @@ def parse_diff(raw: str) -> dict:
             current_file = {"filename": "", "hunks": []}
             current_hunk = None
 
-        elif line.startswith("--- "):
-            pass  # handled by +++ line
+        elif line.startswith("--- ") and current_file is not None:
+            old_name = line[4:]
+            if old_name.startswith("a/"):
+                old_name = old_name[2:]
+            if old_name == "/dev/null":
+                current_file["status"] = "added"
+            else:
+                current_file["_old_name"] = old_name
+                current_file["status"] = "modified"
 
         elif line.startswith("+++ ") and current_file is not None:
             name = line[4:]
             if name.startswith("b/"):
                 name = name[2:]
+            if name == "/dev/null":
+                current_file["status"] = "deleted"
+                name = current_file.pop("_old_name", "")
+            current_file.pop("_old_name", None)
             current_file["filename"] = name
 
         elif line.startswith("@@ ") and current_file is not None:

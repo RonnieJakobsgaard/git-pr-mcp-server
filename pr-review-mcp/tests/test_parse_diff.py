@@ -211,6 +211,44 @@ def test_hunk_header_stored():
 
 
 # ---------------------------------------------------------------------------
+# file status
+# ---------------------------------------------------------------------------
+
+def test_modified_file_has_modified_status():
+    raw = _make_diff("foo.py", ["old\n"], ["new\n"])
+    result = parse_diff(raw)
+    assert result["files"][0]["status"] == "modified"
+
+
+def test_added_file_has_added_status():
+    raw = (
+        "diff --git a/new.py b/new.py\n"
+        "new file mode 100644\n"
+        "--- /dev/null\n"
+        "+++ b/new.py\n"
+        "@@ -0,0 +1,1 @@\n"
+        "+hello\n"
+    )
+    result = parse_diff(raw)
+    assert result["files"][0]["status"] == "added"
+    assert result["files"][0]["filename"] == "new.py"
+
+
+def test_deleted_file_has_deleted_status():
+    raw = (
+        "diff --git a/gone.py b/gone.py\n"
+        "deleted file mode 100644\n"
+        "--- a/gone.py\n"
+        "+++ /dev/null\n"
+        "@@ -1,1 +0,0 @@\n"
+        "-bye\n"
+    )
+    result = parse_diff(raw)
+    assert result["files"][0]["status"] == "deleted"
+    assert result["files"][0]["filename"] == "gone.py"
+
+
+# ---------------------------------------------------------------------------
 # content stripping
 # ---------------------------------------------------------------------------
 
