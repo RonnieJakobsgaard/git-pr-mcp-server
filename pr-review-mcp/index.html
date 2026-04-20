@@ -37,8 +37,8 @@
     <span id="ref-range" class="text-xs text-gray-500 font-mono"></span>
     <span id="status-badge" class="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>
     <div id="tab-switcher" class="flex rounded-md border border-gray-300 overflow-hidden text-xs font-medium">
-      <button id="btn-tab-diff" onclick="switchTab('diff')" class="px-3 py-1.5 transition">Diff</button>
-      <button id="btn-tab-overview" onclick="switchTab('overview')" class="px-3 py-1.5 border-l border-gray-300 transition">Overview</button>
+      <button id="btn-tab-overview" onclick="switchTab('overview')" class="px-3 py-1.5 transition">Overview</button>
+      <button id="btn-tab-diff" onclick="switchTab('diff')" class="px-3 py-1.5 border-l border-gray-300 transition">Diff</button>
     </div>
   </div>
   <div class="flex items-center gap-3">
@@ -183,10 +183,10 @@ function showEmpty() {
 // ---------------------------------------------------------------------------
 function updateTabUI() {
   const isDiff = activeTab === "diff";
-  document.getElementById("btn-tab-diff").className =
-    `px-3 py-1.5 transition ${isDiff ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"}`;
   document.getElementById("btn-tab-overview").className =
-    `px-3 py-1.5 border-l border-gray-300 transition ${!isDiff ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"}`;
+    `px-3 py-1.5 transition ${!isDiff ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"}`;
+  document.getElementById("btn-tab-diff").className =
+    `px-3 py-1.5 border-l border-gray-300 transition ${isDiff ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"}`;
 }
 
 function switchTab(tab) {
