@@ -1,4 +1,4 @@
-# pr-review-mcp
+# janus-mcp
 
 A local MCP server that gives Claude Code an interactive browser-based PR review loop.
 
@@ -13,7 +13,7 @@ inline comments, fixes them, and loops until you approve.
 ## Setup
 
 ```bash
-cd pr-review-mcp
+cd janus-mcp
 bash setup.sh
 ```
 
@@ -31,15 +31,14 @@ Example (paths filled in by `setup.sh`):
 ```json
 {
   "mcpServers": {
-    "pr-review": {
-      "command": "/path/to/pr-review-mcp/.venv/bin/python",
-      "args": ["/path/to/pr-review-mcp/janus_mcp/server.py"]
+    "janus": {
+      "command": "/path/to/janus-mcp/.venv/bin/janus-mcp"
     }
   }
 }
 ```
 
-Verify it's registered: run `/mcp` in Claude Code and confirm `pr-review` appears.
+Verify it's registered: run `/mcp` in Claude Code and confirm `janus` appears.
 
 ## Add to your project's CLAUDE.md
 
@@ -118,7 +117,7 @@ After setup, run through this checklist to confirm everything works:
 
 - [ ] Run `setup.sh` and confirm it prints a config snippet with absolute paths
 - [ ] Add the snippet to `~/.claude.json` and restart Claude Code
-- [ ] Run `/mcp` — `pr-review` should appear as connected
+- [ ] Run `/mcp` — `janus` should appear as connected
 - [ ] Ask Claude to make a small change, then call `create_review()` — browser opens showing the diff
 - [ ] Click a line in the diff — a comment form appears anchored to that line
 - [ ] Submit a comment — it appears in the sidebar and inline below the line

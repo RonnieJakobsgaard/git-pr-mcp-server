@@ -13,7 +13,7 @@ class SharedState:
         self.diff_data: dict = {}
         self.approved_files: set[str] = set()
         self.port: int = 0
-        self.temp_dir: str = tempfile.mkdtemp(prefix="pr-review-")
+        self.temp_dir: str = tempfile.mkdtemp(prefix="janus-")
 
     @property
     def comments_path(self) -> str:

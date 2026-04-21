@@ -14,7 +14,7 @@ _EXPAND_DIFF = {
     "_raw": "",
     "files": [
         {
-            "filename": "pr-review-mcp/janus_mcp/server.py",
+            "filename": "janus-mcp/janus_mcp/server.py",
             "total_lines": 252,
             "hunks": [
                 {

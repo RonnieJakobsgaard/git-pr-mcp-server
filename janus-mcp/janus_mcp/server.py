@@ -17,7 +17,7 @@ from janus_mcp.diff_parser import parse_diff
 from janus_mcp.http_server import find_free_port, run_http_server
 from janus_mcp.state import state
 
-mcp = FastMCP("pr-review")
+mcp = FastMCP("janus")
 
 _COMMENT_FIELDS = {"id", "file", "line", "comment", "resolved"}
 
@@ -151,7 +151,7 @@ def approve_and_commit(message: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def _history_dir() -> Path:
-    d = Path.home() / ".pr-review" / "history"
+    d = Path.home() / ".janus" / "history"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
