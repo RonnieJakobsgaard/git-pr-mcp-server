@@ -1,4 +1,4 @@
-# janus-mcp
+# momos-mcp
 
 A local MCP server that gives Claude Code an interactive browser-based PR review loop.
 
@@ -13,7 +13,7 @@ inline comments, fixes them, and loops until you approve.
 ## Setup
 
 ```bash
-cd janus-mcp
+cd momos-mcp
 bash setup.sh
 ```
 
@@ -31,14 +31,14 @@ Example (paths filled in by `setup.sh`):
 ```json
 {
   "mcpServers": {
-    "janus": {
-      "command": "/path/to/janus-mcp/.venv/bin/janus-mcp"
+    "momos": {
+      "command": "/path/to/momos-mcp/.venv/bin/momos-mcp"
     }
   }
 }
 ```
 
-Verify it's registered: run `/mcp` in Claude Code and confirm `janus` appears.
+Verify it's registered: run `/mcp` in Claude Code and confirm `momos` appears.
 
 ## Add to your project's CLAUDE.md
 
@@ -92,7 +92,7 @@ create_review(ai_pre_review=True)
 ```
 
 **Requirements:**
-- `anthropic` package: `pip install janus-mcp[ai]` (or `pip install anthropic`)
+- `anthropic` package: `pip install momos-mcp[ai]` (or `pip install anthropic`)
 - `ANTHROPIC_API_KEY` environment variable set
 
 **Model:** `claude-opus-4-7` — looks for bugs, logic errors, security issues, and missing edge-case handling. Skips style/formatting nits.
@@ -103,7 +103,7 @@ create_review(ai_pre_review=True)
 
 ```bash
 # Install with AI support
-pip install "janus-mcp[ai]"
+pip install "momos-mcp[ai]"
 
 # Set API key (add to your shell profile for persistence)
 export ANTHROPIC_API_KEY=sk-ant-...
@@ -117,7 +117,7 @@ After setup, run through this checklist to confirm everything works:
 
 - [ ] Run `setup.sh` and confirm it prints a config snippet with absolute paths
 - [ ] Add the snippet to `~/.claude.json` and restart Claude Code
-- [ ] Run `/mcp` — `janus` should appear as connected
+- [ ] Run `/mcp` — `momos` should appear as connected
 - [ ] Ask Claude to make a small change, then call `create_review()` — browser opens showing the diff
 - [ ] Click a line in the diff — a comment form appears anchored to that line
 - [ ] Submit a comment — it appears in the sidebar and inline below the line

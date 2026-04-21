@@ -5,8 +5,8 @@ import subprocess
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
-from janus_mcp._git import _validate_ref
-from janus_mcp.state import state
+from momos_mcp._git import _validate_ref
+from momos_mcp.state import state
 
 
 class ReviewHandler(http.server.BaseHTTPRequestHandler):

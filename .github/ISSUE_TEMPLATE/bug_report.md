@@ -17,7 +17,7 @@ labels: bug
 **Environment**
 - OS:
 - Python version:
-- janus-mcp version:
+- momos-mcp version:
 
 **Logs / error output**
 ```

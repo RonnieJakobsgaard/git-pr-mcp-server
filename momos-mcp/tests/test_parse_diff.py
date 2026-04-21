@@ -1,6 +1,6 @@
 """Tests for parse_diff — the unified-diff parser."""
 import pytest
-from janus_mcp.diff_parser import parse_diff
+from momos_mcp.diff_parser import parse_diff
 
 
 # ---------------------------------------------------------------------------

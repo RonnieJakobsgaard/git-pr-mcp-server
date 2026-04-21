@@ -7,10 +7,10 @@ cd "$SCRIPT_DIR"
 echo "Creating virtual environment..."
 python3 -m venv .venv
 
-echo "Installing janus-mcp..."
+echo "Installing momos-mcp..."
 .venv/bin/pip install --quiet -e .
 
-ENTRY="$SCRIPT_DIR/.venv/bin/janus-mcp"
+ENTRY="$SCRIPT_DIR/.venv/bin/momos-mcp"
 
 echo ""
 echo "Setup complete!"
@@ -21,7 +21,7 @@ echo ""
 cat <<EOF
 {
   "mcpServers": {
-    "janus": {
+    "momos": {
       "command": "$ENTRY"
     }
   }
@@ -33,9 +33,9 @@ echo ""
 cat <<'EOF'
 {
   "mcpServers": {
-    "janus": {
+    "momos": {
       "command": "uvx",
-      "args": ["janus-mcp"]
+      "args": ["momos-mcp"]
     }
   }
 }

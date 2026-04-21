@@ -1,6 +1,6 @@
 """Tests for SharedState — the in-memory review session store."""
 import pytest
-from janus_mcp.state import SharedState
+from momos_mcp.state import SharedState
 
 
 @pytest.fixture()

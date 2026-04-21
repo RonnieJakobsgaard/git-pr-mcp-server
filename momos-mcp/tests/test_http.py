@@ -2,7 +2,7 @@
 import http.client
 import json
 import pytest
-from janus_mcp.state import state
+from momos_mcp.state import state
 
 
 @pytest.fixture(autouse=True)

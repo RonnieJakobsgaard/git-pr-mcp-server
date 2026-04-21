@@ -1,9 +1,9 @@
-# Contributing to janus-mcp
+# Contributing to momos-mcp
 
 ## Setup
 
 ```bash
-cd janus-mcp
+cd momos-mcp
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 ```
@@ -11,7 +11,7 @@ python3 -m venv .venv
 ## Running tests
 
 ```bash
-cd janus-mcp
+cd momos-mcp
 .venv/bin/python -m pytest tests/ -q
 ```
 

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "janus-mcp"
+name = "momos-mcp"
 version = "0.1.0"
 description = "Human-in-the-loop browser review loop for AI coding agents"
 readme = "README.md"
@@ -23,7 +23,7 @@ dev = [
 ]
 
 [project.scripts]
-janus-mcp = "janus_mcp:main"
+momos-mcp = "momos_mcp:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["janus_mcp"]
+packages = ["momos_mcp"]
