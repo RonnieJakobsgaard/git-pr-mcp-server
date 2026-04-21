@@ -17,12 +17,12 @@ until you're satisfied. Only then does it commit.
 ## Getting started
 
 ```bash
-cd janus-mcp
+cd momos-mcp
 bash setup.sh
 ```
 
 Follow the printed instructions to register the MCP server with Claude Code, then add the
 CLAUDE.md workflow snippet to any project where you want the review loop active.
 
-See [`janus-mcp/README.md`](janus-mcp/README.md) for full setup and usage details.
+See [`momos-mcp/README.md`](momos-mcp/README.md) for full setup and usage details.
 

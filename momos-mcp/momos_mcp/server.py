@@ -11,13 +11,13 @@ from pathlib import Path
 import anyio
 from mcp.server.fastmcp import FastMCP
 
-from janus_mcp._git import _validate_ref
-from janus_mcp.ai import _run_ai_pre_review, _suggest_commit_message
-from janus_mcp.diff_parser import parse_diff
-from janus_mcp.http_server import find_free_port, run_http_server
-from janus_mcp.state import state
+from momos_mcp._git import _validate_ref
+from momos_mcp.ai import _run_ai_pre_review, _suggest_commit_message
+from momos_mcp.diff_parser import parse_diff
+from momos_mcp.http_server import find_free_port, run_http_server
+from momos_mcp.state import state
 
-mcp = FastMCP("janus")
+mcp = FastMCP("momos")
 
 _COMMENT_FIELDS = {"id", "file", "line", "comment", "resolved"}
 
@@ -151,7 +151,7 @@ def approve_and_commit(message: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def _history_dir() -> Path:
-    d = Path.home() / ".janus" / "history"
+    d = Path.home() / ".momos" / "history"
     d.mkdir(parents=True, exist_ok=True)
     return d
 

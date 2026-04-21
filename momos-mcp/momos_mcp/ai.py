@@ -8,7 +8,7 @@ try:
 except ImportError:
     _HAS_ANTHROPIC = False
 
-from janus_mcp.state import state
+from momos_mcp.state import state
 
 
 _COMMIT_MSG_PROMPT = """\

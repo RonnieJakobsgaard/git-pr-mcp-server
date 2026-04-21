@@ -19,12 +19,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd janus-mcp
+          cd momos-mcp
           python -m pip install -e ".[ai,dev]"
 
       - name: Run tests
         run: |
-          cd janus-mcp
+          cd momos-mcp
           python -m pytest tests/ -q \
             --ignore=tests/test_ui_expand.py \
             --ignore=tests/test_ui_comments.py \
