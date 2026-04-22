@@ -57,10 +57,7 @@ if (-not (Test-Path $entry)) {
 }
 
 # --- Patch ~/.claude/settings.json ---
-$settingsPath = Join-Path $HOME '.claude\settings.json'
-if ($IsLinux -or $IsMacOS) {
-    $settingsPath = Join-Path $HOME '.claude/settings.json'
-}
+$settingsPath = Join-Path (Join-Path $HOME '.claude') 'settings.json'
 
 $mcpEntry = @{
     command = $entry
