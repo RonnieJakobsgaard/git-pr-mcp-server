@@ -4,6 +4,8 @@
 
 A local MCP server that brings an interactive, browser-based PR review loop to Claude Code.
 
+> Built for developers who want a human-in-the-loop review step without leaving their terminal.
+
 Instead of committing blindly, Claude opens a GitHub-style diff UI in your browser after
 making changes. You leave inline comments on specific lines, click "Request Changes" or
 "Approve", and Claude responds — fixing each comment, marking it resolved, and looping
