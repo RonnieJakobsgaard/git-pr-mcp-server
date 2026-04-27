@@ -70,7 +70,7 @@ class ReviewHandler(http.server.BaseHTTPRequestHandler):
                 return
             result = subprocess.run(
                 ["git", "show", f"{ref}:{filepath}"],
-                capture_output=True, text=True,
+                capture_output=True, text=True, stdin=subprocess.DEVNULL,
                 cwd=state.git_cwd or None,
             )
             if result.returncode != 0:

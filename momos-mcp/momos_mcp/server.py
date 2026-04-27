@@ -22,27 +22,6 @@ mcp = FastMCP("momos")
 _COMMENT_FIELDS = {"id", "file", "line", "comment", "resolved"}
 
 
-@mcp.tool()
-def debug_info() -> dict:
-    """Return diagnostic info: working directory, git availability, and exe path."""
-    import shutil
-    cwd = os.getcwd()
-    exe = sys.executable
-    git_path = shutil.which("git")
-    git_check = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
-        capture_output=True, text=True
-    )
-    return {
-        "cwd": cwd,
-        "exe": exe,
-        "git_path": git_path,
-        "git_repo": git_check.stdout.strip() if git_check.returncode == 0 else None,
-        "git_error": git_check.stderr.strip() if git_check.returncode != 0 else None,
-        "port": state.port,
-    }
-
-
 def _slim_snapshot(snap: dict) -> dict:
     """Strip internal-only comment fields before returning to Claude."""
     slim = dict(snap)
@@ -72,7 +51,7 @@ def create_review(base_ref: str = "main", head_ref: str = "HEAD", ai_pre_review:
 
     result = subprocess.run(
         ["git", "diff", base_ref, head_ref],
-        capture_output=True, text=True, cwd=git_cwd,
+        capture_output=True, text=True, stdin=subprocess.DEVNULL, cwd=git_cwd,
     )
     if result.returncode != 0:
         return {"error": result.stderr.strip() or "git diff failed"}
@@ -89,7 +68,7 @@ def create_review(base_ref: str = "main", head_ref: str = "HEAD", ai_pre_review:
     for file_info in diff_data.get("files", []):
         lc = subprocess.run(
             ["git", "show", f"{head_ref}:{file_info['filename']}"],
-            capture_output=True, text=True, cwd=git_cwd,
+            capture_output=True, text=True, stdin=subprocess.DEVNULL, cwd=git_cwd,
         )
         file_info["total_lines"] = len(lc.stdout.splitlines()) if lc.returncode == 0 else None
     state.new_round()
@@ -154,11 +133,11 @@ def approve_and_commit(message: str) -> dict:
         ids = [c["id"] for c in unresolved]
         return {"error": "Unresolved comments remain", "unresolved_ids": ids}
 
-    result = subprocess.run(["git", "add", "-A"], capture_output=True, text=True)
+    result = subprocess.run(["git", "add", "-A"], capture_output=True, text=True, stdin=subprocess.DEVNULL)
     if result.returncode != 0:
         return {"error": "git add failed: " + result.stderr.strip()}
 
-    result = subprocess.run(["git", "commit", "-m", message], capture_output=True, text=True)
+    result = subprocess.run(["git", "commit", "-m", message], capture_output=True, text=True, stdin=subprocess.DEVNULL)
     if result.returncode != 0:
         return {"error": "git commit failed: " + result.stderr.strip()}
 
@@ -284,6 +263,12 @@ def _start_hot_reload_watcher():
 
 
 def main():
+    # IocpProactor (Windows default) has issues with stdio pipes — switch to the
+    # selector event loop which handles bidirectional pipe I/O correctly.
+    if sys.platform == "win32":
+        import asyncio
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
     state.port = _resolve_port()
     http_thread = threading.Thread(target=run_http_server, args=(state.port,), daemon=True)
     http_thread.start()
